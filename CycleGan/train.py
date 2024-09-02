@@ -12,6 +12,15 @@ from tqdm import tqdm
 from torchvision.utils import save_image
 from discriminator_model import Discriminator
 from generator_model import Generator
+import os
+
+
+def create_folder_if_not_exists(folder_name: str) -> None:
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+        print(f"Folder '{folder_name}' created.")
+    else:
+        print(f"Folder '{folder_name}' already exists.")
 
 
 def train_function(discriminator_T:Discriminator, discriminator_S:Discriminator, generator_S:Generator, generator_T:Generator, dataloader:DataLoader, 
@@ -95,6 +104,7 @@ def train_function(discriminator_T:Discriminator, discriminator_S:Discriminator,
         generator_scaler.update()
 
         if idx%config.SAVE_IMAGE_IDX == 0:
+            create_folder_if_not_exists(f"SavedImages_{config.EXPERIMENT_NUMBER}")
             save_image(fake_target*0.5+0.5, f"SavedImages_{config.EXPERIMENT_NUMBER}/target_{epoch}_{idx}.png")
             save_image(fake_source*0.5+0.5, f"SavedImages_{config.EXPERIMENT_NUMBER}/source_{epoch}_{idx}.png")
 
@@ -108,27 +118,28 @@ def train_function(discriminator_T:Discriminator, discriminator_S:Discriminator,
     gen_total_loss_value = sum(gen_total_loss_array) / len(gen_total_loss_array)
 
     # Calculate and Store Loss Values
-    disc_t_loss = "SavedLossFiles_{config.EXPERIMENT_NUMBER}/disc_t_loss.txt"
-    disc_s_loss = "SavedLossFiles_{config.EXPERIMENT_NUMBER}/disc_s_loss.txt"
-    disc_total_loss = "SavedLossFiles_{config.EXPERIMENT_NUMBER}/disc_total_loss.txt"
+    create_folder_if_not_exists(f"SavedLossFiles_{config.EXPERIMENT_NUMBER}")
+    disc_t_loss = f"SavedLossFiles_{config.EXPERIMENT_NUMBER}/disc_t_loss.txt"
+    disc_s_loss = f"SavedLossFiles_{config.EXPERIMENT_NUMBER}/disc_s_loss.txt"
+    disc_total_loss = f"SavedLossFiles_{config.EXPERIMENT_NUMBER}/disc_total_loss.txt"
     with open(disc_t_loss, "a") as disc_t_loss_file, open(disc_s_loss, "a") as disc_s_loss_file, open(disc_total_loss, "a") as disc_total_loss_file:
         disc_t_loss_file.write(str(disc_t_loss_value) + "\n")
         disc_s_loss_file.write(str(disc_s_loss_value) + "\n")
         disc_total_loss_file.write(str(disc_total_loss_value) + "\n")
 
-    gen_t_loss = "SavedLossFiles_{config.EXPERIMENT_NUMBER}/gen_t_loss.txt"
-    gen_s_loss = "SavedLossFiles_{config.EXPERIMENT_NUMBER}/gen_s_loss.txt"
+    gen_t_loss = f"SavedLossFiles_{config.EXPERIMENT_NUMBER}/gen_t_loss.txt"
+    gen_s_loss = f"SavedLossFiles_{config.EXPERIMENT_NUMBER}/gen_s_loss.txt"
     with open(gen_t_loss, "a") as gen_t_loss_file, open(gen_s_loss, "a") as gen_s_loss_file:
         gen_t_loss_file.write(str(gen_t_loss_value) + "\n")
         gen_s_loss_file.write(str(gen_s_loss_value) + "\n")
 
-    cycle_t_loss = "SavedLossFiles_{config.EXPERIMENT_NUMBER}/cycle_t_loss.txt"
-    cycle_s_loss = "SavedLossFiles_{config.EXPERIMENT_NUMBER}/cycle_s_loss.txt"
+    cycle_t_loss = f"SavedLossFiles_{config.EXPERIMENT_NUMBER}/cycle_t_loss.txt"
+    cycle_s_loss = f"SavedLossFiles_{config.EXPERIMENT_NUMBER}/cycle_s_loss.txt"
     with open(cycle_t_loss, "a") as cycle_t_loss_file, open(cycle_s_loss, "a") as cycle_s_loss_file:
         cycle_t_loss_file.write(str(cycle_t_loss_value) + "\n")
         cycle_s_loss_file.write(str(cycle_s_loss_value) + "\n")
     
-    gen_total_loss = "SavedLossFiles_{config.EXPERIMENT_NUMBER}/gen_total_loss.txt"
+    gen_total_loss = f"SavedLossFiles_{config.EXPERIMENT_NUMBER}/gen_total_loss.txt"
     with open(gen_total_loss, "a") as gen_total_loss_file:
         gen_total_loss_file.write(str(gen_total_loss_value) + "\n")
 
@@ -153,13 +164,13 @@ def main():
     MSE_loss = nn.MSELoss()
 
     if config.LOAD_MODEL:
-        if config.CHECKPOINT_EPOCH_NUMBER==0:
+        if config.CHECKPOINT_LOAD_EPOCH_NUMBER==0:
             print("Provide the epoch number to load models")
             sys.exit()            
-        load_checkpoint(f"SavedModels_{config.EXPERIMENT_NUMBER}/{config.CHECKPOINT_EPOCH_NUMBER}_{config.CHECKPOINT_GEN_T}", generator_T, generator_optimizer, config.LEARNING_RATE)
-        load_checkpoint(f"SavedModels_{config.EXPERIMENT_NUMBER}/{config.CHECKPOINT_EPOCH_NUMBER}_{config.CHECKPOINT_GEN_S}", generator_S, generator_optimizer, config.LEARNING_RATE)
-        load_checkpoint(f"SavedModels_{config.EXPERIMENT_NUMBER}/{config.CHECKPOINT_EPOCH_NUMBER}_{config.CHECKPOINT_DISC_T}", discriminator_T, discriminator_optimizer, config.LEARNING_RATE)
-        load_checkpoint(f"SavedModels_{config.EXPERIMENT_NUMBER}/{config.CHECKPOINT_EPOCH_NUMBER}_{config.CHECKPOINT_DISC_S}", discriminator_S, discriminator_optimizer, config.LEARNING_RATE)
+        load_checkpoint(f"SavedModels_{config.EXPERIMENT_NUMBER}/{config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{config.CHECKPOINT_GEN_T}", generator_T, generator_optimizer, config.LEARNING_RATE)
+        load_checkpoint(f"SavedModels_{config.EXPERIMENT_NUMBER}/{config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{config.CHECKPOINT_GEN_S}", generator_S, generator_optimizer, config.LEARNING_RATE)
+        load_checkpoint(f"SavedModels_{config.EXPERIMENT_NUMBER}/{config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{config.CHECKPOINT_DISC_T}", discriminator_T, discriminator_optimizer, config.LEARNING_RATE)
+        load_checkpoint(f"SavedModels_{config.EXPERIMENT_NUMBER}/{config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{config.CHECKPOINT_DISC_S}", discriminator_S, discriminator_optimizer, config.LEARNING_RATE)
         print("Checkpoints loaded successfully")
 
     dataset = SourceTargetDataset(root_source=config.TRAIN_DIR+"/sourceDomain", root_target=config.TRAIN_DIR+"/targetDomain", transform=config.transforms)
@@ -184,6 +195,7 @@ def main():
             epoch+1
         )
         if config.SAVE_MODEL and (epoch+1)%config.CHECKPOINT_SAVE_EPOCH_COUNT==0:
+            create_folder_if_not_exists(f"SavedModels_{config.EXPERIMENT_NUMBER}")
             save_checkpoint(generator_T, generator_optimizer, epoch+1, filename=config.CHECKPOINT_GEN_T)
             save_checkpoint(generator_S, generator_optimizer, epoch+1, filename=config.CHECKPOINT_GEN_S)
             save_checkpoint(discriminator_T, discriminator_optimizer, epoch+1, filename=config.CHECKPOINT_DISC_T)

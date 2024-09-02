@@ -4,12 +4,12 @@ import config
 import copy
 
 def save_checkpoint(model, optimizer, epoch:int, filename:str):
-    print(f"Saving checkpoint : {epoch+config.CHECKPOINT_EPOCH_NUMBER}_{filename}")
+    print(f"Saving checkpoint : {epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{filename}")
     checkpoint = {
         "state_dict": model.state_dict(),
         "optimizer": optimizer.state_dict(),
     }
-    torch.save(checkpoint, f"SavedModels_{config.EXPERIMENT_NUMBER}/{epoch+config.CHECKPOINT_EPOCH_NUMBER}_{filename}")
+    torch.save(checkpoint, f"SavedModels_{config.EXPERIMENT_NUMBER}/{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{filename}")
 
 
 def load_checkpoint(checkpoint_file:str, model, optimizer, lr):
