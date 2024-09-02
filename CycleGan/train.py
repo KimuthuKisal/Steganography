@@ -18,9 +18,9 @@ import os
 def create_folder_if_not_exists(folder_name: str) -> None:
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
-        print(f"Folder '{folder_name}' created.")
+        # print(f"Folder '{folder_name}' created.")
     else:
-        print(f"Folder '{folder_name}' already exists.")
+        # print(f"Folder '{folder_name}' already exists.")
 
 
 def train_function(discriminator_T:Discriminator, discriminator_S:Discriminator, generator_S:Generator, generator_T:Generator, dataloader:DataLoader, 
