@@ -173,7 +173,7 @@ def main():
         load_checkpoint(f"SavedModels_{config.EXPERIMENT_NUMBER}/{config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{config.CHECKPOINT_DISC_S}", discriminator_S, discriminator_optimizer, config.LEARNING_RATE)
         print("Checkpoints loaded successfully")
 
-    dataset = SourceTargetDataset(root_source=config.TRAIN_DIR+"/sourceDomain", root_target=config.TRAIN_DIR+"/targetDomain", transform=config.transforms)
+    dataset = SourceTargetDataset(root_source=config.TRAIN_DIR+"/"+config.SOURCE_DOMAIN, root_target=config.TRAIN_DIR+"/"+config.TARGET_DOMAIN, transform=config.transforms)
     dataloader = DataLoader(dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=config.NUM_WORKERS, pin_memory=True)
     generator_scaler = torch.cuda.amp.GradScaler()
     discriminator_scaler = torch.cuda.amp.GradScaler()

@@ -7,6 +7,8 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # Adjust Dataset paths for Training data and Validation data - Only training data is used for now
 TRAIN_DIR = "resized_data/train"
 VAL_DIR = "resized_data/validation"
+SOURCE_DOMAIN = "sourceDomain"
+TARGET_DOMAIN = "targetDomain"
 
 # Adjust followings as your wish - Optional
 BATCH_SIZE = 4
