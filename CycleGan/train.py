@@ -105,8 +105,8 @@ def train_function(discriminator_T:Discriminator, discriminator_S:Discriminator,
 
         if idx%config.SAVE_IMAGE_IDX == 0:
             create_folder_if_not_exists(f"SavedImages_{config.EXPERIMENT_NUMBER}")
-            save_image(fake_target*0.5+0.5, f"SavedImages_{config.EXPERIMENT_NUMBER}/target_{epoch}_{idx}.png")
-            save_image(fake_source*0.5+0.5, f"SavedImages_{config.EXPERIMENT_NUMBER}/source_{epoch}_{idx}.png")
+            save_image(fake_target*0.5+0.5, f"SavedImages_{config.EXPERIMENT_NUMBER}/target_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
+            save_image(fake_source*0.5+0.5, f"SavedImages_{config.EXPERIMENT_NUMBER}/source_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
 
     disc_t_loss_value = sum(disc_t_loss_array) / len(disc_t_loss_array)
     disc_s_loss_value = sum(disc_s_loss_array) / len(disc_s_loss_array)
