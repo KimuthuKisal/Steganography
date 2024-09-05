@@ -9,7 +9,7 @@ def save_checkpoint(model, optimizer, epoch:int, filename:str):
         "state_dict": model.state_dict(),
         "optimizer": optimizer.state_dict(),
     }
-    torch.save(checkpoint, f"SavedModels_{config.EXPERIMENT_NUMBER}/{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{filename}")
+    torch.save(checkpoint, f"{config.EXPERIMENT_NUMBER}_SavedModels/{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{filename}")
 
 
 def load_checkpoint(checkpoint_file:str, model, optimizer, lr):
