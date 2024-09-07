@@ -101,9 +101,10 @@ def train_function(discriminator_T:Discriminator, discriminator_S:Discriminator,
         generator_scaler.update()
 
         if idx%config.SAVE_IMAGE_IDX == 0:
-            create_folder_if_not_exists(f"{config.EXPERIMENT_NUMBER}_SavedImages")
-            save_image(fake_target*0.5+0.5, f"{config.EXPERIMENT_NUMBER}_SavedImages/target_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
-            save_image(fake_source*0.5+0.5, f"{config.EXPERIMENT_NUMBER}_SavedImages/source_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
+            if idx!=0:
+                create_folder_if_not_exists(f"{config.EXPERIMENT_NUMBER}_SavedImages")
+                save_image(fake_target*0.5+0.5, f"{config.EXPERIMENT_NUMBER}_SavedImages/target_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
+                save_image(fake_source*0.5+0.5, f"{config.EXPERIMENT_NUMBER}_SavedImages/source_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
 
     disc_t_loss_value = sum(disc_t_loss_array) / len(disc_t_loss_array)
     disc_s_loss_value = sum(disc_s_loss_array) / len(disc_s_loss_array)
@@ -170,7 +171,12 @@ def main():
         load_checkpoint(f"{config.EXPERIMENT_NUMBER}_SavedModels/{config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{config.CHECKPOINT_DISC_S}", discriminator_S, discriminator_optimizer, config.LEARNING_RATE)
         print("Checkpoints loaded successfully")
 
-    dataset = SourceTargetDataset(root_source=config.TRAIN_DIR+"/"+config.SOURCE_DOMAIN, root_target=config.TRAIN_DIR+"/"+config.TARGET_DOMAIN, transform=config.transforms)
+    ## For normal secret images -> single image
+    # dataset = SourceTargetDataset(root_source=config.TRAIN_DIR+"/"+config.SOURCE_DOMAIN, root_target=config.TRAIN_DIR+"/"+config.TARGET_DOMAIN, transform=config.transforms)
+    
+    # For fused secret images -> concatenated two images
+    dataset = ConcatenatedSourceTargetDataset(root_source=config.TRAIN_DIR+"/"+config.SOURCE_DOMAIN, root_target=config.TRAIN_DIR+"/"+config.TARGET_DOMAIN, transform=config.transforms)
+    
     dataloader = DataLoader(dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=config.NUM_WORKERS, pin_memory=True)
     generator_scaler = torch.cuda.amp.GradScaler()
     discriminator_scaler = torch.cuda.amp.GradScaler()
