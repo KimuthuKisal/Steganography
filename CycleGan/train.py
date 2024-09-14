@@ -1,5 +1,5 @@
 import torch
-from dataset import SourceTargetDataset
+from dataset import SourceTargetDataset, ConcatenatedSourceTargetDataset
 import sys
 from utils import save_checkpoint, load_checkpoint
 from torchvision import transforms
@@ -38,15 +38,15 @@ def train_function(discriminator_T:Discriminator, discriminator_S:Discriminator,
         target = target.to(config.DEVICE)
 
         with torch.cuda.amp.autocast():
-            fake_target = generator_T(source)
-            discriminator_target_real = discriminator_T(source)
+            fake_target = generator_T(source)       # Generate a target image using source image
+            discriminator_target_real = discriminator_T(target)
             discriminator_target_fake = discriminator_T(fake_target.detach())
             discriminator_target_real_loss = MSE_loss(discriminator_target_real, torch.ones_like(discriminator_target_real))
             discriminator_target_fake_loss = MSE_loss(discriminator_target_fake, torch.zeros_like(discriminator_target_fake))
             discriminator_target_loss = discriminator_target_real_loss + discriminator_target_fake_loss
 
-            fake_source = generator_S(target)
-            discriminator_source_real = discriminator_S(target)
+            fake_source = generator_S(target)       # Generate a source image using target image
+            discriminator_source_real = discriminator_S(source)
             discriminator_source_fake = discriminator_S(fake_source.detach())
             discriminator_source_real_loss = MSE_loss(discriminator_source_real, torch.ones_like(discriminator_source_real))
             discriminator_source_fake_loss = MSE_loss(discriminator_source_fake, torch.zeros_like(discriminator_source_fake))
@@ -143,10 +143,10 @@ def train_function(discriminator_T:Discriminator, discriminator_S:Discriminator,
 
 
 def main():
-    discriminator_S = Discriminator(in_channels=3).to(config.DEVICE)
-    discriminator_T = Discriminator(in_channels=3).to(config.DEVICE)
-    generator_S = Generator(image_channels=3, num_residuals=9).to(config.DEVICE)
-    generator_T = Generator(image_channels=3, num_residuals=9).to(config.DEVICE)
+    discriminator_S = Discriminator(in_channels=3).to(config.DEVICE)                # To classify images of source domain
+    discriminator_T = Discriminator(in_channels=3).to(config.DEVICE)                # To classify images of target domain
+    generator_S = Generator(image_channels=3, num_residuals=9).to(config.DEVICE)    # To generate an image from source domain
+    generator_T = Generator(image_channels=3, num_residuals=9).to(config.DEVICE)    # To generate an image from target domain
     discriminator_optimizer = optim.Adam(
         list(discriminator_T.parameters()) + list(discriminator_S.parameters()),
         lr = config.LEARNING_RATE,
@@ -171,13 +171,17 @@ def main():
         load_checkpoint(f"{config.EXPERIMENT_NUMBER}_SavedModels/{config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{config.CHECKPOINT_DISC_S}", discriminator_S, discriminator_optimizer, config.LEARNING_RATE)
         print("Checkpoints loaded successfully")
 
-    ## For normal secret images -> single image
-    # dataset = SourceTargetDataset(root_source=config.TRAIN_DIR+"/"+config.SOURCE_DOMAIN, root_target=config.TRAIN_DIR+"/"+config.TARGET_DOMAIN, transform=config.transforms)
+    # For normal secret images -> single image
+    dataset = SourceTargetDataset(root_source=config.TRAIN_DIR+"/"+config.SOURCE_DOMAIN, root_target=config.TRAIN_DIR+"/"+config.TARGET_DOMAIN, transform=config.transforms)
+    # validation_dataset = SourceTargetDataset(root_source=config.VAL_DIR+"/"+config.SOURCE_DOMAIN, root_target=config.VAL_DIR+"/"+config.TARGET_DOMAIN, transform=config.transforms)
     
-    # For fused secret images -> concatenated two images
-    dataset = ConcatenatedSourceTargetDataset(root_source=config.TRAIN_DIR+"/"+config.SOURCE_DOMAIN, root_target=config.TRAIN_DIR+"/"+config.TARGET_DOMAIN, transform=config.transforms)
+    # # For fused secret images -> concatenated two images
+    # dataset = ConcatenatedSourceTargetDataset(root_source=config.TRAIN_DIR+"/"+config.SOURCE_DOMAIN, root_target=config.TRAIN_DIR+"/"+config.TARGET_DOMAIN, transform=config.transforms)
+    # validation_dataset = ConcatenatedSourceTargetDataset(root_source=config.VAL_DIR+"/"+config.SOURCE_DOMAIN, root_target=config.VAL_DIR+"/"+config.TARGET_DOMAIN, transform=config.transforms)
     
     dataloader = DataLoader(dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=config.NUM_WORKERS, pin_memory=True)
+    # validation_dataloader = DataLoader(validation_dataset, batch_size=config.VALIDATION_BATCH_SIZE, shuffle=False, num_workers=config.NUM_WORKERS, pin_memory=True)
+    
     generator_scaler = torch.cuda.amp.GradScaler()
     discriminator_scaler = torch.cuda.amp.GradScaler()
 

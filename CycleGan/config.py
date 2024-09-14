@@ -5,14 +5,15 @@ from albumentations.pytorch import ToTensorV2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Adjust Dataset paths for Training data and Validation data - Only training data is used for now
-TRAIN_DIR = "resized_data/train"
-VAL_DIR = "resized_data/validation"
+TRAIN_DIR = "horse_zebra/train"
+VAL_DIR = "horse_zebra/validation"
 SOURCE_DOMAIN = "sourceDomain"
 TARGET_DOMAIN = "targetDomain"
 
 # Adjust followings as your wish - Optional
-BATCH_SIZE = 4
-LEARNING_RATE = 0.003
+BATCH_SIZE = 2
+VALIDATION_BATCH_SIZE = 1
+LEARNING_RATE = 0.0002
 LAMBDA_IDENTITY = 0.0
 LAMBDA_CYCLE = 10
 NUM_WORKERS = 4
@@ -21,19 +22,36 @@ NUM_WORKERS = 4
 # Uses as a suffix for output folders and files
 # Example : EXPERIMENT_NUMBER = 1  ->  Maintain a file to record data about the experiment
 # Example : EXPERIMENT_NUMBER = "ImagesToGoogleMaps"
-EXPERIMENT_NUMBER = 1
+EXPERIMENT_NUMBER = "updated_horse_zebra"
+TEST_LOAD_EXPERIMENT_NUMBER = 100
+
+# For Additional experiments after  main experiment -> Set flag True with an experiment name
+
+EXPERIMENT_NUMBER_2 = "UPDATED_Paintarts"
+EXPERIMENT_NUMBER_2_FLAG = False
+TRAIN_DIR_2 = "horse_zebra/train"
+VAL_DIR_2 = "horse_zebra/validation"
+SOURCE_DOMAIN_2 = "sourceDomain"
+TARGET_DOMAIN_2 = "targetDomain"
+
+EXPERIMENT_NUMBER_3 = "UPDATED_Googlemaps"
+EXPERIMENT_NUMBER_3_FLAG = False
+TRAIN_DIR_3 = "horse_zebra/train"
+VAL_DIR_3 = "horse_zebra/validation"
+SOURCE_DOMAIN_3 = "sourceDomain"
+TARGET_DOMAIN_3 = "targetDomain"
 
 # Total number of epochs in the Training loop to be executed
 # If new training   -> 1 to NUM_EPOCHS
 # If load and train -> [CHECKPOINT_LOAD_EPOCH_NUMBER] to [CHECKPOINT_LOAD_EPOCH_NUMBER + NUM_EPOCHS]
-NUM_EPOCHS = 50
+NUM_EPOCHS = 25
 
 # Define Model epoch number correctly to load models
 CHECKPOINT_LOAD_EPOCH_NUMBER = 0
 
-# Models are saved by this count continuously ( 25,50,75,100 )
+# Models are saved by this count continuously ( if defined to 25 then 25,50,75,100 )
 # Uses as a suffix for output files
-CHECKPOINT_SAVE_EPOCH_COUNT = 25
+CHECKPOINT_SAVE_EPOCH_COUNT = 1
 
 # If continueing previously trained model   -> True [Make sure to define CHECKPOINT_LOAD_EPOCH_NUMBER correctly]
 # If new training                           -> False

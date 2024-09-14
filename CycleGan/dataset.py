@@ -8,7 +8,8 @@ import numpy as np
 import random
 from torchvision import transforms
 
-# Class for normal secret images -> single image
+
+# Class to pass single image
 class SourceTargetDataset(Dataset):
     def __init__(self, root_source:str, root_target:str, transform:Callable=None, resize_to: tuple=(256,256)):
         self.root_source = root_source
@@ -23,6 +24,7 @@ class SourceTargetDataset(Dataset):
     def __len__(self):
         return self.length_dataset
     def __getitem__(self, index:int):
+        # print("Indexes :", index % self.length_source, " and ", index % self.length_target)
         source_image = self.root_source_images[index % self.length_source]
         target_image = self.root_target_images[index % self.length_target]
         source_path = os.path.join(self.root_source, source_image)
@@ -31,12 +33,17 @@ class SourceTargetDataset(Dataset):
         target_image_np = np.array(Image.open(target_path).convert("RGB").resize(self.resize_to))
         if self.transform:
             augmentations = self.transform(image=source_image_np, image0=target_image_np)
-            source_image_np = augmentations["image"]
-            target_image_np = augmentations["image0"]
+            source_image_np = augmentations["image0"]
+            target_image_np = augmentations["image"]
+        # create_folder_if_not_exists("TestConcatenatedImages")
+        # source_save_path = f"TestConcatenatedImages/{source_image}"
+        # save_image_as_jpg(source_image_np.permute(1, 2, 0).numpy(), source_save_path)
+        # source_save_path2 = f"TestConcatenatedImages/{target_image}"
+        # save_image_as_jpg(target_image_np.permute(1, 2, 0).numpy(), source_save_path2)
         return source_image_np, target_image_np
     
 
-# Class for fused secret images -> concatenated two images
+# Class to pass concatenated images
 class ConcatenatedSourceTargetDataset(Dataset):
     def __init__(self, root_source:str, root_target:str, transform:Callable=None, resize_to: tuple=(256,256)):
         self.root_source = root_source
@@ -53,7 +60,9 @@ class ConcatenatedSourceTargetDataset(Dataset):
     def __getitem__(self, index:int):
         source_image_1 = self.root_source_images[index % self.length_source]
         source_image_2 = self.root_source_images[(index + self.length_target) % self.length_source]
+        # source_image_2 = self.root_source_images[(index + random.randint(1, self.length_source-1)) % self.length_source]
         target_image = self.root_target_images[index % self.length_target]
+        # print(f"Indexes : {target_image} | {source_image_1} | {source_image_2}")
         source_path_1 = os.path.join(self.root_source, source_image_1)
         source_path_2 = os.path.join(self.root_source, source_image_2)
         target_path = os.path.join(self.root_target, target_image)
@@ -73,22 +82,54 @@ class ConcatenatedSourceTargetDataset(Dataset):
         source_image_np = source_image_tensor.permute(1, 2, 0).numpy().astype(np.uint8)
         target_image_np = np.array(Image.open(target_path).convert("RGB").resize(self.resize_to))
         if self.transform:
-            augmentations = self.transform(image=source_image_np, image0=target_image_np)
-            source_image_np = augmentations["image"]
-            target_image_np = augmentations["image0"]
+            augmentations = self.transform(image_source=source_image_np, image_target=target_image_np)
+            source_image_np = augmentations["image_source"]
+            target_image_np = augmentations["image_target"]
+
         create_folder_if_not_exists("TestConcatenatedImages")
         source_save_path = f"TestConcatenatedImages/{source_image_1.split('.')[0]}_{source_image_2.split('.')[0]}_combined.jpg"
         save_image_as_jpg(source_image_np.permute(1, 2, 0).numpy(), source_save_path)
         source_save_path2 = f"TestConcatenatedImages/{target_image}_combined.jpg"
         save_image_as_jpg(target_image_np.permute(1, 2, 0).numpy(), source_save_path2)
+        # print("Concatenated Image saved")
+
         return source_image_np, target_image_np
 
 
+# Function to combine images pixel-wise with alternating pattern
+def combine_images(img1: torch.Tensor, img2: torch.Tensor) -> torch.Tensor:
+    # print("combine_images")
+    combined_source_image = torch.zeros_like(img1)
+    combined_source_image[:, 0::2, ::2] = img1[:, 0::2, ::2]  
+    combined_source_image[:, 0::2, 1::2] = img2[:, 0::2, 1::2]  
+    combined_source_image[:, 1::2, ::2] = img2[:, 1::2, ::2]  
+    combined_source_image[:, 1::2, 1::2] = img1[:, 1::2, 1::2] 
+    return combined_source_image
+
+
+# Function to reconstruct images from combined image
+def reconstruct_images(combined_source_image: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    img1_reconstructed = torch.zeros_like(combined_source_image)
+    img2_reconstructed = torch.zeros_like(combined_source_image)
+    img1_reconstructed[:, 0::2, ::2] = combined_source_image[:, 0::2, ::2]
+    img2_reconstructed[:, 0::2, 1::2] = combined_source_image[:, 0::2, 1::2]
+    img2_reconstructed[:, 1::2, ::2] = combined_source_image[:, 1::2, ::2]
+    img1_reconstructed[:, 1::2, 1::2] = combined_source_image[:, 1::2, 1::2]
+    return img1_reconstructed, img2_reconstructed
+
+
+# Function to save a numpy image as a JPEG file
 def save_image_as_jpg(image_np: np.ndarray, filename: str):
     image = Image.fromarray(image_np.astype(np.uint8))
     image.save(filename, "JPEG")
+    # print(f"Image saved as {filename}")
 
 
 def create_folder_if_not_exists(folder_name: str) -> None:
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
+
+
+# test_dataset = ConcatenatedSourceTargetDataset(root_source=config.TRAIN_DIR+"/"+config.SOURCE_DOMAIN, root_target=config.TRAIN_DIR+"/"+config.TARGET_DOMAIN, transform=config.transforms)
+# print("Test dataset length : ", test_dataset.__len__())
+# dataloader = DataLoader(test_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=config.NUM_WORKERS, pin_memory=True)
