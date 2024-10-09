@@ -41,6 +41,21 @@ VAL_DIR_3 = "horse_zebra/validation"
 SOURCE_DOMAIN_3 = "sourceDomain"
 TARGET_DOMAIN_3 = "targetDomain"
 
+EXPERIMENT_NUMBER_4 = "UPDATED_Paintarts_Concatenated"
+EXPERIMENT_NUMBER_4_FLAG = False
+TRAIN_DIR_4 = "horse_zebra/train"
+VAL_DIR_4 = "horse_zebra/validation"
+SOURCE_DOMAIN_4 = "sourceDomain"
+TARGET_DOMAIN_4 = "targetDomain"
+
+EXPERIMENT_NUMBER_5 = "UPDATED_Googlemaps_Concatenated"
+EXPERIMENT_NUMBER_5_FLAG = False
+TRAIN_DIR_5 = "horse_zebra/train"
+VAL_DIR_5 = "horse_zebra/validation"
+SOURCE_DOMAIN_5 = "sourceDomain"
+TARGET_DOMAIN_5 = "targetDomain"
+
+
 # Total number of epochs in the Training loop to be executed
 # If new training   -> 1 to NUM_EPOCHS
 # If load and train -> [CHECKPOINT_LOAD_EPOCH_NUMBER] to [CHECKPOINT_LOAD_EPOCH_NUMBER + NUM_EPOCHS]
