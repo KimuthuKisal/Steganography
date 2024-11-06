@@ -47,28 +47,28 @@ class SourceTargetDataset(Dataset):
 class SourceTargetDataset_TwoSecretImages(Dataset):
     def __init__(self, root_source:str, root_source2:str, root_target:str, transform_source1: Callable = None, transform_source2: Callable = None, transform_target: Callable = None, resize_to: tuple=(256,256)):
         self.root_source = root_source
-        self.root_source_2 = root_source2
+        self.root_source2 = root_source2
         self.root_target = root_target
         self.transform_source1 = transform_source1
         self.transform_source2 = transform_source2
         self.transform_target = transform_target
         self.resize_to = resize_to
         self.root_source_images = os.listdir(root_source)
-        self.root_source2_images = os.listdir(root_source)
+        self.root_source2_images = os.listdir(root_source2)
         self.root_target_images = os.listdir(root_target)
         self.length_source = len(self.root_source_images)
-        self.length_source2 = len(self.root_source_images)
+        self.length_source2 = len(self.root_source2_images)
         self.length_target = len(self.root_target_images)
         self.length_dataset = max(len(self.root_source_images), len(self.root_source2_images), len(self.root_target_images))
     def __len__(self):
         return self.length_dataset
     def __getitem__(self, index:int):
         source_image_1 = self.root_source_images[index % self.length_source]
-        source_image_2 = self.root_source_images[(index + 2) % self.length_source2]
+        source_image_2 = self.root_source2_images[(index + 2) % self.length_source2]
         # source_image_2 = self.root_source_images[(index + random.randint(1, self.length_source-1)) % self.length_source]
         target_image = self.root_target_images[index % self.length_target]
         source_path_1 = os.path.join(self.root_source, source_image_1)
-        source_path_2 = os.path.join(self.root_source, source_image_2)
+        source_path_2 = os.path.join(self.root_source2, source_image_2)
         target_path = os.path.join(self.root_target, target_image)
         source_image_np_1 = np.array(Image.open(source_path_1).convert("RGB").resize(self.resize_to))
         source_image_np_2 = np.array(Image.open(source_path_2).convert("RGB").resize(self.resize_to))

@@ -30,7 +30,7 @@ LAMBDA_IDENTITY = 0.0
 LAMBDA_CYCLE = 10
 LAMBDA_RECONSTRUCTION = 10
 NUM_WORKERS = 4
-ARNOLD_SCRAMBLE = False
+ARNOLD_SCRAMBLE = True
 SCRAMBLE_COUNT = 8
 REFINE_TECHNIQUE = '4nn'
 
@@ -62,21 +62,21 @@ TARGET_DOMAIN_TRAIN_DIR_EXP05 = "horse_zebra/train/targetDomain"
 # Total number of epochs in the Training loop to be executed
 # If new training   -> 1 to NUM_EPOCHS
 # If load and train -> [CHECKPOINT_LOAD_EPOCH_NUMBER] to [CHECKPOINT_LOAD_EPOCH_NUMBER + NUM_EPOCHS]
-NUM_EPOCHS = 2
+NUM_EPOCHS = 20
 
 # Define Model epoch number correctly to load models
 CHECKPOINT_LOAD_EPOCH_NUMBER = 0
 
 # Models are saved by this count continuously ( if defined to 25 then 25,50,75,100 )
 # Uses as a suffix for output files
-CHECKPOINT_SAVE_EPOCH_COUNT = 1
+CHECKPOINT_SAVE_EPOCH_COUNT = 5
 
 # If continueing previously trained model   -> True [Make sure to define CHECKPOINT_LOAD_EPOCH_NUMBER correctly]
 # If new training                           -> False
 LOAD_MODEL = False
 
 # Saves model from given CHECKPOINT_SAVE_EPOCH_COUNT -> Usually True
-SAVE_MODEL = False
+SAVE_MODEL = True
 
 # Constructed Images are saved from this count
 # Uses as a suffix for output images
@@ -132,5 +132,5 @@ transform_target = A.Compose([
 TEST_SOURCE2_TARGET_EXPERIMENT_NUMBER = "TEST_SOURCE2_TARGET_EXPERIMENT"
 TEST_SOURCE2_TARGET_EXPERIMENT_NUMBER_FLAG = True
 TEST_SOURCE2_TARGET_SOURCE_DOMAIN_TRAIN_DIR = "test_source_2_target/source"
-TEST_SOURCE2_TARGET_SOURCE2_DOMAIN_TRAIN_DIR = "test_source_2_target/source"
+TEST_SOURCE2_TARGET_SOURCE2_DOMAIN_TRAIN_DIR = "test_source_2_target/source2"
 TEST_SOURCE2_TARGET_TARGET_DOMAIN_TRAIN_DIR = "test_source_2_target/target"
