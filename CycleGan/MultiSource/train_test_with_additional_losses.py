@@ -150,22 +150,22 @@ def train_function_double(experiment_name:str, discriminator_T:Discriminator, di
             identity_source_loss = L1_loss(scrambled_intermediate, identity_source)
             identity_target_loss = L1_loss(target, identity_target)
 
-            generator_loss = (
-                generator_source_loss + generator_target_loss  
-                + cycle_source_loss*config.LAMBDA_CYCLE + cycle_target_loss*config.LAMBDA_CYCLE 
-                + identity_source_loss*config.LAMBDA_IDENTITY + identity_target_loss*config.LAMBDA_IDENTITY
-            )
+        #     generator_loss = (
+        #         generator_source_loss + generator_target_loss  
+        #         + cycle_source_loss*config.LAMBDA_CYCLE + cycle_target_loss*config.LAMBDA_CYCLE 
+        #         + identity_source_loss*config.LAMBDA_IDENTITY + identity_target_loss*config.LAMBDA_IDENTITY
+        #     )
 
             gen_t_loss_array.append(generator_target_loss)
             gen_s_loss_array.append(generator_source_loss)
             cycle_t_loss_array.append(cycle_target_loss)
             cycle_s_loss_array.append(cycle_source_loss)
-            gen_total_loss_array.append(generator_loss)
+            # gen_total_loss_array.append(generator_loss)
         
-        generator_optimizer.zero_grad()
-        generator_scaler.scale(generator_loss).backward()
-        generator_scaler.step(generator_optimizer)
-        generator_scaler.update()
+        # generator_optimizer.zero_grad()
+        # generator_scaler.scale(generator_loss).backward()
+        # generator_scaler.step(generator_optimizer)
+        # generator_scaler.update()
 
         if idx%config.SAVE_IMAGE_IDX == 0:
             # if idx!=0:
@@ -214,6 +214,20 @@ def train_function_double(experiment_name:str, discriminator_T:Discriminator, di
         refine_loss = (source_1_refine_loss + source_2_refine_loss) / 2
         source_refine_loss_array.append(refine_loss)
 
+        generator_loss = (
+            generator_source_loss + generator_target_loss  
+            + cycle_source_loss*config.LAMBDA_CYCLE + cycle_target_loss*config.LAMBDA_CYCLE 
+            + identity_source_loss*config.LAMBDA_IDENTITY + identity_target_loss*config.LAMBDA_IDENTITY
+            + intermediate_loss*config.LAMBDA_INTERMEDIATE
+            + refine_loss*config.LAMBDA_REFINE
+        )
+
+        gen_total_loss_array.append(generator_loss)
+        
+        generator_optimizer.zero_grad()
+        generator_scaler.scale(generator_loss).backward()
+        generator_scaler.step(generator_optimizer)
+        generator_scaler.update()
 
         print(f"images saved in epoch {epoch} index {idx}")
 
@@ -334,10 +348,10 @@ def main():
     print("Experiment starts")
     # MAIN EXPERIMENT
     train_experimental_model(
-        config.FULL_ARCHITECTURE_EXPERIMENT_NUMBER, 
-        config.FULL_ARCHITECTURE_SOURCE_DOMAIN_TRAIN_DIR, 
-        config.FULL_ARCHITECTURE_SOURCE2_DOMAIN_TRAIN_DIR, 
-        config.FULL_ARCHITECTURE_TARGET_DOMAIN_TRAIN_DIR, 
+        config.FULL_ARCHITECTURE_ADDITIONAL_LOSS_EXPERIMENT_NUMBER, 
+        config.FULL_ARCHITECTURE_ADDITIONAL_LOSS_SOURCE_DOMAIN_TRAIN_DIR, 
+        config.FULL_ARCHITECTURE_ADDITIONAL_LOSS_SOURCE2_DOMAIN_TRAIN_DIR, 
+        config.FULL_ARCHITECTURE_ADDITIONAL_LOSS_TARGET_DOMAIN_TRAIN_DIR, 
         config.transform_source1, 
         config.transform_source2, 
         config.transform_target, 
