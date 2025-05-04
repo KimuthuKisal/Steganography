@@ -42,7 +42,7 @@ def combine_images_pixel_wise_msb_batch(img1_batch: torch.Tensor, img2_batch: to
     batch_size, channels, height, width = img1_batch.shape
     source_1 = ((source_1 + 1) * 127.5).clamp(0, 255).to(torch.uint8)
     source_2 = ((source_2 + 1) * 127.5).clamp(0, 255).to(torch.uint8)
-    combined_batch = torch.zeros_like(img1_batch)
+    combined_batch = torch.empty_like(img1_batch)
     for b in range(batch_size):
         # img1 = (img1_batch[b]*255).to(torch.uint8)
         # img2 = (img2_batch[b]*255).to(torch.uint8)
@@ -58,12 +58,12 @@ def combine_images_pixel_wise_msb_batch(img1_batch: torch.Tensor, img2_batch: to
 
 def reconstruct_images_pixel_wise_msb_batch(combined_batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     batch_size, channels, height, width = combined_batch.shape
-    img1_reconstructed_batch = torch.zeros_like(combined_batch)
-    img2_reconstructed_batch = torch.zeros_like(combined_batch)
+    img1_reconstructed_batch = torch.empty_like(combined_batch)
+    img2_reconstructed_batch = torch.empty_like(combined_batch)
     for b in range(batch_size):
         combined_image = combined_batch[b].to(torch.uint8)
-        img1_reconstructed = torch.zeros_like(combined_image)
-        img2_reconstructed = torch.zeros_like(combined_image)
+        img1_reconstructed = torch.empty_like(combined_image)
+        img2_reconstructed = torch.empty_like(combined_image)
         img1_reconstructed[:, ::2, ::2] = combined_image[:, ::2, ::2] & 0xF0             # even row, even col
         img2_reconstructed[:, ::2, ::2] = (combined_image[:, ::2, ::2] & 0x0F) << 4      # even row, even col
         img2_reconstructed[:, ::2, 1::2] = combined_image[:, ::2, 1::2] & 0xF0           # even row, odd col
@@ -89,7 +89,7 @@ def combine_images_pixel_wise_msb(img1: torch.Tensor, img2: torch.Tensor) -> tor
     img2 = img2.to(torch.uint8)
     
     # Create a tensor for combined image with the same shape
-    combined_image_pixel_wise = torch.zeros_like(img1)
+    combined_image_pixel_wise = torch.empty_like(img1)
     
     # Extract Most Significant Bits (MSBs)
     img1_msb = img1 & 0xF0  # Most significant 4 bits of img1
@@ -108,8 +108,8 @@ def reconstruct_images_pixel_wise_msb(combined_image_pixel_wise: torch.Tensor) -
     combined_image_pixel_wise = combined_image_pixel_wise.to(torch.uint8)
     
     # Create tensors for reconstructed images
-    img1_reconstructed_pixel_wise = torch.zeros_like(combined_image_pixel_wise)
-    img2_reconstructed_pixel_wise = torch.zeros_like(combined_image_pixel_wise)
+    img1_reconstructed_pixel_wise = torch.empty_like(combined_image_pixel_wise)
+    img2_reconstructed_pixel_wise = torch.empty_like(combined_image_pixel_wise)
     
     # Reconstruct the original images from the combined image
     img1_reconstructed_pixel_wise[:, ::2, ::2] = combined_image_pixel_wise[:, ::2, ::2] & 0xF0              # Get img1 MSBs
@@ -133,45 +133,66 @@ def concatenate_images_pixel_wise(source_image_np_1:np.ndarray, source_image_np_
     img2 = torch.tensor(source_image_np_2, dtype=torch.uint8).permute(2, 0, 1)  
     combined_image_tensor = combine_images_pixel_wise(img1, img2)
     combined_image_np = combined_image_tensor.permute(1, 2, 0).numpy()
+    del source_image_np_1, source_image_np_2
     return combined_image_np
 
+# def combine_images_pixel_wise_batch(img1_batch: torch.Tensor, img2_batch: torch.Tensor) -> torch.Tensor:
+#     assert img1_batch.shape == img2_batch.shape, "Both image batches must have the same shape."
+#     batch_size, channels, height, width = img1_batch.shape
+#     combined_batch = torch.empty_like(img1_batch)
+#     for b in range(batch_size):
+#         combined_batch[b, :, 0::2, ::2] = img1_batch[b, :, 0::2, ::2]    # img1 even rows, even cols
+#         combined_batch[b, :, 0::2, 1::2] = img2_batch[b, :, 0::2, 1::2]  # img2 even rows, odd cols
+#         combined_batch[b, :, 1::2, ::2] = img2_batch[b, :, 1::2, ::2]    # img2 odd rows, even cols
+#         combined_batch[b, :, 1::2, 1::2] = img1_batch[b, :, 1::2, 1::2]  # img1 odd rows, odd cols
+#     del img1_batch, img2_batch
+#     return combined_batch
 def combine_images_pixel_wise_batch(img1_batch: torch.Tensor, img2_batch: torch.Tensor) -> torch.Tensor:
     assert img1_batch.shape == img2_batch.shape, "Both image batches must have the same shape."
-    batch_size, channels, height, width = img1_batch.shape
-    combined_batch = torch.zeros_like(img1_batch)
-    for b in range(batch_size):
-        combined_batch[b, :, 0::2, ::2] = img1_batch[b, :, 0::2, ::2]    # img1 even rows, even cols
-        combined_batch[b, :, 0::2, 1::2] = img2_batch[b, :, 0::2, 1::2]  # img2 even rows, odd cols
-        combined_batch[b, :, 1::2, ::2] = img2_batch[b, :, 1::2, ::2]    # img2 odd rows, even cols
-        combined_batch[b, :, 1::2, 1::2] = img1_batch[b, :, 1::2, 1::2]  # img1 odd rows, odd cols
-    return combined_batch
+    combined = torch.empty_like(img1_batch)
+    combined[:, :, 0::2, ::2] = img1_batch[:, :, 0::2, ::2]
+    combined[:, :, 0::2, 1::2] = img2_batch[:, :, 0::2, 1::2]
+    combined[:, :, 1::2, ::2] = img2_batch[:, :, 1::2, ::2]
+    combined[:, :, 1::2, 1::2] = img1_batch[:, :, 1::2, 1::2]
+    return combined
 
+# def reconstruct_images_pixel_wise_batch(combined_batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+#     batch_size, channels, height, width = combined_batch.shape
+#     img1_reconstructed_batch = torch.empty_like(combined_batch)
+#     img2_reconstructed_batch = torch.empty_like(combined_batch)
+#     for b in range(batch_size):
+#         img1_reconstructed_batch[b, :, 0::2, ::2] = combined_batch[b, :, 0::2, ::2]
+#         img2_reconstructed_batch[b, :, 0::2, 1::2] = combined_batch[b, :, 0::2, 1::2]
+#         img2_reconstructed_batch[b, :, 1::2, ::2] = combined_batch[b, :, 1::2, ::2]
+#         img1_reconstructed_batch[b, :, 1::2, 1::2] = combined_batch[b, :, 1::2, 1::2]
+#     del combined_batch
+#     return img1_reconstructed_batch, img2_reconstructed_batch
 def reconstruct_images_pixel_wise_batch(combined_batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-    batch_size, channels, height, width = combined_batch.shape
-    img1_reconstructed_batch = torch.zeros_like(combined_batch)
-    img2_reconstructed_batch = torch.zeros_like(combined_batch)
-    for b in range(batch_size):
-        img1_reconstructed_batch[b, :, 0::2, ::2] = combined_batch[b, :, 0::2, ::2]
-        img2_reconstructed_batch[b, :, 0::2, 1::2] = combined_batch[b, :, 0::2, 1::2]
-        img2_reconstructed_batch[b, :, 1::2, ::2] = combined_batch[b, :, 1::2, ::2]
-        img1_reconstructed_batch[b, :, 1::2, 1::2] = combined_batch[b, :, 1::2, 1::2]
-    return img1_reconstructed_batch, img2_reconstructed_batch
+    img1 = torch.zeros_like(combined_batch)
+    img2 = torch.zeros_like(combined_batch)
+    img1[:, :, 0::2, ::2] = combined_batch[:, :, 0::2, ::2]
+    img2[:, :, 0::2, 1::2] = combined_batch[:, :, 0::2, 1::2]
+    img2[:, :, 1::2, ::2] = combined_batch[:, :, 1::2, ::2]
+    img1[:, :, 1::2, 1::2] = combined_batch[:, :, 1::2, 1::2]
+    return img1, img2
 
 def combine_images_pixel_wise(img1: torch.Tensor, img2: torch.Tensor) -> torch.Tensor:
-    combined_image_pixel_wise = torch.zeros_like(img1)
+    combined_image_pixel_wise = torch.empty_like(img1)
     combined_image_pixel_wise[:, 0::2, ::2] = img1[:, 0::2, ::2]    # img1 even rows, even cols
     combined_image_pixel_wise[:, 0::2, 1::2] = img2[:, 0::2, 1::2]  # img2 even rows, odd cols
     combined_image_pixel_wise[:, 1::2, ::2] = img2[:, 1::2, ::2]    # img2 odd rows, even cols
     combined_image_pixel_wise[:, 1::2, 1::2] = img1[:, 1::2, 1::2]  # img1 odd rows, odd cols
+    del img1, img2
     return combined_image_pixel_wise
 
 def reconstruct_images_pixel_wise(combined_image_pixel_wise: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-    img1_reconstructed_pixel_wise = torch.zeros_like(combined_image_pixel_wise)
-    img2_reconstructed_pixel_wise = torch.zeros_like(combined_image_pixel_wise)
+    img1_reconstructed_pixel_wise = torch.empty_like(combined_image_pixel_wise)
+    img2_reconstructed_pixel_wise = torch.empty_like(combined_image_pixel_wise)
     img1_reconstructed_pixel_wise[:, 0::2, ::2] = combined_image_pixel_wise[:, 0::2, ::2]
     img2_reconstructed_pixel_wise[:, 0::2, 1::2] = combined_image_pixel_wise[:, 0::2, 1::2]
     img2_reconstructed_pixel_wise[:, 1::2, ::2] = combined_image_pixel_wise[:, 1::2, ::2]
     img1_reconstructed_pixel_wise[:, 1::2, 1::2] = combined_image_pixel_wise[:, 1::2, 1::2]
+    del combined_image_pixel_wise
     return img1_reconstructed_pixel_wise, img2_reconstructed_pixel_wise
     # img_1_refined_knn = replace_missing_pixels_with_neighbors(img1_reconstructed_pixel_wise, 1)
     # img_2_refined_knn = replace_missing_pixels_with_neighbors(img2_reconstructed_pixel_wise, 2)
@@ -179,30 +200,50 @@ def reconstruct_images_pixel_wise(combined_image_pixel_wise: torch.Tensor) -> Tu
 
 def replace_missing_pixels_with_neighbors_batch(image_batch: torch.Tensor, secret_image_number: int) -> torch.Tensor:
     batch_size, channels, height, width = image_batch.shape
-    filled_batch = image_batch.clone()
+    filled = image_batch.clone()
+    mask = torch.zeros((height, width), dtype=torch.bool, device=image_batch.device)
+    if secret_image_number == 1:
+        mask[0::2, ::2] = True
+        mask[1::2, 1::2] = True
+    else:
+        mask[0::2, 1::2] = True
+        mask[1::2, ::2] = True
+    missing_mask = (filled == 0).all(1) & mask.unsqueeze(0)
+    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        shifted = torch.roll(filled, shifts=(dx, dy), dims=(2, 3))
+        valid_shift = (shifted != 0).any(1)
+        filled[missing_mask & valid_shift] += shifted[missing_mask & valid_shift]
 
-    for b in range(batch_size):
-        for i in range(height):
-            for j in range(width):
-                if secret_image_number == 1:
-                    if (i % 2 == 0 and j % 2 == 0) or (i % 2 == 1 and j % 2 == 1):
-                        continue  
-                elif secret_image_number == 2:
-                    if (i % 2 == 0 and j % 2 == 1) or (i % 2 == 1 and j % 2 == 0):
-                        continue  
-                if torch.all(filled_batch[b, :, i, j] == 0):  
-                    neighbors = []
-                    if i - 1 >= 0 and torch.any(filled_batch[b, :, i - 1, j] != 0):
-                        neighbors.append(filled_batch[b, :, i - 1, j])
-                    if i + 1 < height and torch.any(filled_batch[b, :, i + 1, j] != 0):
-                        neighbors.append(filled_batch[b, :, i + 1, j])
-                    if j - 1 >= 0 and torch.any(filled_batch[b, :, i, j - 1] != 0):
-                        neighbors.append(filled_batch[b, :, i, j - 1])
-                    if j + 1 < width and torch.any(filled_batch[b, :, i, j + 1] != 0):
-                        neighbors.append(filled_batch[b, :, i, j + 1])
-                    if neighbors:
-                        filled_batch[b, :, i, j] = (torch.mean(torch.stack(neighbors), dim=0))
-    return filled_batch
+    counts = (filled != 0).float().sum(1, keepdim=True)
+    counts[counts == 0] = 1
+    return filled / counts
+
+# def replace_missing_pixels_with_neighbors_batch(image_batch: torch.Tensor, secret_image_number: int) -> torch.Tensor:
+#     batch_size, channels, height, width = image_batch.shape
+#     filled_batch = image_batch.clone()
+#     for b in range(batch_size):
+#         for i in range(height):
+#             for j in range(width):
+#                 if secret_image_number == 1:
+#                     if (i % 2 == 0 and j % 2 == 0) or (i % 2 == 1 and j % 2 == 1):
+#                         continue  
+#                 elif secret_image_number == 2:
+#                     if (i % 2 == 0 and j % 2 == 1) or (i % 2 == 1 and j % 2 == 0):
+#                         continue  
+#                 if torch.all(filled_batch[b, :, i, j] == 0):  
+#                     neighbors = []
+#                     if i - 1 >= 0 and torch.any(filled_batch[b, :, i - 1, j] != 0):
+#                         neighbors.append(filled_batch[b, :, i - 1, j])
+#                     if i + 1 < height and torch.any(filled_batch[b, :, i + 1, j] != 0):
+#                         neighbors.append(filled_batch[b, :, i + 1, j])
+#                     if j - 1 >= 0 and torch.any(filled_batch[b, :, i, j - 1] != 0):
+#                         neighbors.append(filled_batch[b, :, i, j - 1])
+#                     if j + 1 < width and torch.any(filled_batch[b, :, i, j + 1] != 0):
+#                         neighbors.append(filled_batch[b, :, i, j + 1])
+#                     if neighbors:
+#                         filled_batch[b, :, i, j] = (torch.mean(torch.stack(neighbors), dim=0))
+#     del image_batch
+#     return filled_batch
 
 
 
@@ -214,26 +255,28 @@ def arnold_transform_tensor(image_tensor: torch.Tensor, iterations: int = 1) -> 
     N = image_tensor.shape[1]  
     transformed_image = image_tensor.clone()
     for _ in range(iterations):
-        new_image = torch.zeros_like(transformed_image)
+        new_image = torch.empty_like(transformed_image)
         for x in range(N):
             for y in range(N):
                 x_new = (x + y) % N
                 y_new = (x + 2 * y) % N
                 new_image[:, x_new, y_new] = transformed_image[:, x, y]
         transformed_image = new_image
+    del image_tensor
     return transformed_image
 
 def reverse_arnold_transform_tensor(image_tensor: torch.Tensor, iterations: int = 1) -> torch.Tensor:
     N = image_tensor.shape[1]  
     transformed_image = image_tensor.clone()
     for _ in range(iterations):
-        new_image = torch.zeros_like(transformed_image)
+        new_image = torch.empty_like(transformed_image)
         for x in range(N):
             for y in range(N):
                 x_new = (2 * x - y) % N
                 y_new = (-x + y) % N
                 new_image[:, x_new, y_new] = transformed_image[:, x, y]
         transformed_image = new_image
+    del image_tensor
     return transformed_image
 
 def arnold_transform(image_np: np.ndarray, iterations: int = 1) -> np.ndarray:
@@ -241,13 +284,14 @@ def arnold_transform(image_np: np.ndarray, iterations: int = 1) -> np.ndarray:
     N = image_tensor.shape[1]
     transformed_image = image_tensor.clone()
     for _ in range(iterations):
-        new_image = torch.zeros_like(transformed_image)
+        new_image = torch.empty_like(transformed_image)
         for x in range(N):
             for y in range(N):
                 x_new = (x + y) % N
                 y_new = (x + 2 * y) % N
                 new_image[:, x_new, y_new] = transformed_image[:, x, y]
         transformed_image = new_image
+    del image_np
     return transformed_image.permute(1, 2, 0).numpy()
 
 def reverse_arnold_transform(image_np: np.ndarray, iterations: int = 1) -> np.ndarray:
@@ -255,64 +299,73 @@ def reverse_arnold_transform(image_np: np.ndarray, iterations: int = 1) -> np.nd
     N = image_tensor.shape[1]
     transformed_image = image_tensor.clone()
     for _ in range(iterations):
-        new_image = torch.zeros_like(transformed_image)
+        new_image = torch.empty_like(transformed_image)
         for x in range(N):
             for y in range(N):
                 x_new = (2 * x - y) % N
                 y_new = (-x + y) % N
                 new_image[:, x_new, y_new] = transformed_image[:, x, y]
         transformed_image = new_image
+    del image_np
     return transformed_image.permute(1, 2, 0).numpy()
 
-def arnold_transform_batch(image_batch: torch.Tensor, iterations: int = 1) -> torch.Tensor:
-    """
-    Applies the Arnold transform to a batch of images in the format (B, C, H, W).
-    Args:
-        image_batch (torch.Tensor): Batch of images with shape (B, C, H, W).
-        iterations (int): Number of times to apply the Arnold transform.
-    Returns:
-        torch.Tensor: Transformed image batch with shape (B, C, H, W).
-    """
-    B, C, H, W = image_batch.shape
-    assert H == W, "Arnold transform requires square images."
-    N = H
-    transformed_batch = image_batch.clone()
+# def arnold_transform_batch(image_batch: torch.Tensor, iterations: int = 1) -> torch.Tensor:
+#     B, C, H, W = image_batch.shape
+#     assert H == W, "Arnold transform requires square images."
+#     N = H
+#     transformed_batch = image_batch.clone()
 
+#     for _ in range(iterations):
+#         new_batch = torch.empty_like(transformed_batch)
+#         for x in range(N):
+#             for y in range(N):
+#                 x_new = (x + y) % N
+#                 y_new = (x + 2 * y) % N
+#                 new_batch[:, :, x_new, y_new] = transformed_batch[:, :, x, y]
+#         transformed_batch = new_batch
+
+#     del image_batch
+#     return transformed_batch
+
+# def reverse_arnold_transform_batch(image_batch: torch.Tensor, iterations: int = 1) -> torch.Tensor:
+#     B, C, H, W = image_batch.shape
+#     assert H == W, "Arnold transform requires square images."
+#     N = H
+#     transformed_batch = image_batch.clone()
+
+#     for _ in range(iterations):
+#         new_batch = torch.empty_like(transformed_batch)
+#         for x in range(N):
+#             for y in range(N):
+#                 x_new = (2 * x - y) % N
+#                 y_new = (-x + y) % N
+#                 new_batch[:, :, x_new, y_new] = transformed_batch[:, :, x, y]
+#         transformed_batch = new_batch
+
+#     del image_batch
+#     return transformed_batch
+
+def arnold_transform_tensor_batch(images: torch.Tensor, iterations: int = 1) -> torch.Tensor:
+    b, c, h, w = images.shape
+    out = images.clone()
     for _ in range(iterations):
-        new_batch = torch.zeros_like(transformed_batch)
-        for x in range(N):
-            for y in range(N):
-                x_new = (x + y) % N
-                y_new = (x + 2 * y) % N
-                new_batch[:, :, x_new, y_new] = transformed_batch[:, :, x, y]
-        transformed_batch = new_batch
+        x = torch.arange(h).view(-1, 1).expand(h, w)
+        y = torch.arange(w).view(1, -1).expand(h, w)
+        x_new = (x + y) % h
+        y_new = (x + 2 * y) % w
+        out = out[:, :, x_new, y_new]
+    return out
 
-    return transformed_batch
-
-def reverse_arnold_transform_batch(image_batch: torch.Tensor, iterations: int = 1) -> torch.Tensor:
-    """
-    Applies the reverse Arnold transform to a batch of images in the format (B, C, H, W).
-    Args:
-        image_batch (torch.Tensor): Batch of images with shape (B, C, H, W).
-        iterations (int): Number of times to apply the reverse Arnold transform.
-    Returns:
-        torch.Tensor: Reversed transformed image batch with shape (B, C, H, W).
-    """
-    B, C, H, W = image_batch.shape
-    assert H == W, "Arnold transform requires square images."
-    N = H
-    transformed_batch = image_batch.clone()
-
+def reverse_arnold_transform_tensor_batch(images: torch.Tensor, iterations: int = 1) -> torch.Tensor:
+    b, c, h, w = images.shape
+    out = images.clone()
     for _ in range(iterations):
-        new_batch = torch.zeros_like(transformed_batch)
-        for x in range(N):
-            for y in range(N):
-                x_new = (2 * x - y) % N
-                y_new = (-x + y) % N
-                new_batch[:, :, x_new, y_new] = transformed_batch[:, :, x, y]
-        transformed_batch = new_batch
-
-    return transformed_batch
+        x = torch.arange(h).view(-1, 1).expand(h, w)
+        y = torch.arange(w).view(1, -1).expand(h, w)
+        x_new = (2 * x - y) % h
+        y_new = (-x + y) % w
+        out = out[:, :, x_new, y_new]
+    return out
 
 
 ###=================================###

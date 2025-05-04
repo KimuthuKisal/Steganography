@@ -71,9 +71,10 @@ def train_function_double(experiment_name:str, discriminator_T:Discriminator, di
         source_1 = denormalize(source_1)
         source_2 = denormalize(source_2)
         target = denormalize(target)
-        save_image(source_1, f"{experiment_name}_LoadedImages/{epoch}_{idx}_source_1.png")
-        save_image(source_2, f"{experiment_name}_LoadedImages/{epoch}_{idx}_source_2.png")
-        save_image(target, f"{experiment_name}_LoadedImages/{epoch}_{idx}_target.png")
+        if idx==0:
+            save_image(source_1, f"{experiment_name}_LoadedImages/{epoch}_{idx}_source_1.png")
+            save_image(source_2, f"{experiment_name}_LoadedImages/{epoch}_{idx}_source_2.png")
+            save_image(target, f"{experiment_name}_LoadedImages/{epoch}_{idx}_target.png")
 
     # FUSE 2 IMAGES WITH DEFINED TECHNIQUE - 4NN DONE, LSB TO BE IMPLEMENTED
         if (refine_technique == "4nn"):
@@ -89,14 +90,16 @@ def train_function_double(experiment_name:str, discriminator_T:Discriminator, di
         else:
             print("undefined technique. process terminates")
             sys.exit()
-        save_image(fused_image, f"{experiment_name}_LoadedImages/{epoch}_{idx}_fused_image.png")
+        if idx==0:
+            save_image(fused_image, f"{experiment_name}_LoadedImages/{epoch}_{idx}_fused_image.png")
         
     # SCRAMBLE INTERMEDIATE IMAGE
         if config.ARNOLD_SCRAMBLE:
             scrambled_intermediate = utils.arnold_transform_batch(fused_image, config.SCRAMBLE_COUNT)
         else:
             scrambled_intermediate = fused_image
-        save_image(scrambled_intermediate, f"{experiment_name}_LoadedImages/{epoch}_{idx}_scrambled_image.png")
+        if idx==0:
+            save_image(scrambled_intermediate, f"{experiment_name}_LoadedImages/{epoch}_{idx}_scrambled_image.png")
     
 
 # =================================================================================== #
@@ -121,14 +124,17 @@ def train_function_double(experiment_name:str, discriminator_T:Discriminator, di
 
             discriminator_loss = (discriminator_target_loss + discriminator_source_loss)/2
         
-            disc_t_loss_array.append(discriminator_target_loss)
-            disc_s_loss_array.append(discriminator_source_loss)
-            disc_total_loss_array.append(discriminator_loss)
+            disc_t_loss_array.append(discriminator_target_loss.item())
+            disc_s_loss_array.append(discriminator_source_loss.item())
+            disc_total_loss_array.append(discriminator_loss.item())
 
         discriminator_optimizer.zero_grad()
         discriminator_scaler.scale(discriminator_loss).backward()
         discriminator_scaler.step(discriminator_optimizer)
         discriminator_scaler.update()
+
+        del discriminator_target_real, discriminator_target_fake, discriminator_source_real, discriminator_source_fake, discriminator_target_real_loss, discriminator_target_fake_loss, discriminator_target_loss, discriminator_source_real_loss, discriminator_source_fake_loss, discriminator_source_loss
+        torch.cuda.empty_cache()
 
         # Train Generators 
         with torch.cuda.amp.autocast():
@@ -145,10 +151,10 @@ def train_function_double(experiment_name:str, discriminator_T:Discriminator, di
             cycle_target_loss = L1_loss(target, cycle_target)
 
             # identity loss - commented as LAMBDA_IDENTITY = 0.0
-            identity_source = generator_S(scrambled_intermediate)
-            identity_target = generator_T(target)
-            identity_source_loss = L1_loss(scrambled_intermediate, identity_source)
-            identity_target_loss = L1_loss(target, identity_target)
+            # identity_source = generator_S(scrambled_intermediate)
+            # identity_target = generator_T(target)
+            # identity_source_loss = L1_loss(scrambled_intermediate, identity_source)
+            # identity_target_loss = L1_loss(target, identity_target)
 
         #     generator_loss = (
         #         generator_source_loss + generator_target_loss  
@@ -156,11 +162,11 @@ def train_function_double(experiment_name:str, discriminator_T:Discriminator, di
         #         + identity_source_loss*config.LAMBDA_IDENTITY + identity_target_loss*config.LAMBDA_IDENTITY
         #     )
 
-            gen_t_loss_array.append(generator_target_loss)
-            gen_s_loss_array.append(generator_source_loss)
-            cycle_t_loss_array.append(cycle_target_loss)
-            cycle_s_loss_array.append(cycle_source_loss)
-            # gen_total_loss_array.append(generator_loss)
+            gen_t_loss_array.append(generator_target_loss.item())
+            gen_s_loss_array.append(generator_source_loss.item())
+            cycle_t_loss_array.append(cycle_target_loss.item())
+            cycle_s_loss_array.append(cycle_source_loss.item())
+            # gen_total_loss_array.append(generator_loss.item())
         
         # generator_optimizer.zero_grad()
         # generator_scaler.scale(generator_loss).backward()
@@ -170,8 +176,9 @@ def train_function_double(experiment_name:str, discriminator_T:Discriminator, di
         if idx%config.SAVE_IMAGE_IDX == 0:
             # if idx!=0:
             create_folder_if_not_exists(f"{experiment_name}_SavedImages")
-            save_image(fake_target, f"{experiment_name}_SavedImages/target_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
-            save_image(fake_source, f"{experiment_name}_SavedImages/source_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
+            if idx==0:
+                save_image(fake_target, f"{experiment_name}_SavedImages/target_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
+                save_image(fake_source, f"{experiment_name}_SavedImages/source_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
             # save_image(fake_target*0.5+0.5, f"{experiment_name}_SavedImages/target_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
             # save_image(fake_source*0.5+0.5, f"{experiment_name}_SavedImages/source_{epoch+config.CHECKPOINT_LOAD_EPOCH_NUMBER}_{idx}.png")
 
@@ -180,49 +187,54 @@ def train_function_double(experiment_name:str, discriminator_T:Discriminator, di
 # =================================================================================== #
 # =================================================================================== #
 
-        save_image(cycle_source, f"{experiment_name}_LoadedImages/{epoch}_{idx}_cycle_source.png")
+        if idx==0:
+            save_image(cycle_source, f"{experiment_name}_LoadedImages/{epoch}_{idx}_cycle_source.png")
 
     # DESCRAMBLE INTERMEDIATE IMAGE
         if config.ARNOLD_SCRAMBLE:        
             descrambled_intermediate = utils.reverse_arnold_transform_batch(cycle_source, config.SCRAMBLE_COUNT)
-            save_image(descrambled_intermediate, f"{experiment_name}_LoadedImages/{epoch}_{idx}_descrambled_image.png")
+            if idx==0:
+                save_image(descrambled_intermediate, f"{experiment_name}_LoadedImages/{epoch}_{idx}_descrambled_image.png")
         else:
             descrambled_intermediate = cycle_source
 
         intermediate_loss = L1_loss(fused_image, descrambled_intermediate)
-        intermediate_loss_array.append(intermediate_loss)
+        intermediate_loss_array.append(intermediate_loss.item())
 
     # DEFUSE 2 IMAGES WITH DEFINED TECHNIQUE - 4NN DONE, LSB TO BE IMPLEMENTED
         if (refine_technique == "4nn"):
             reconstruct_1, reconstruct_2 = utils.reconstruct_images_pixel_wise_batch(descrambled_intermediate)
-            save_image(reconstruct_1, f"{experiment_name}_LoadedImages/{epoch}_{idx}_reconstruct_1.png")
-            save_image(reconstruct_2, f"{experiment_name}_LoadedImages/{epoch}_{idx}_reconstruct_2.png")
+            if idx==0:
+                save_image(reconstruct_1, f"{experiment_name}_LoadedImages/{epoch}_{idx}_reconstruct_1.png")
+                save_image(reconstruct_2, f"{experiment_name}_LoadedImages/{epoch}_{idx}_reconstruct_2.png")
             refine_1 = utils.replace_missing_pixels_with_neighbors_batch(reconstruct_1, 1)
             refine_2 = utils.replace_missing_pixels_with_neighbors_batch(reconstruct_2, 2)
-            save_image(refine_1, f"{experiment_name}_LoadedImages/{epoch}_{idx}_refine_1.png")
-            save_image(refine_2, f"{experiment_name}_LoadedImages/{epoch}_{idx}_refine_2.png")
+            if idx==0:
+                save_image(refine_1, f"{experiment_name}_LoadedImages/{epoch}_{idx}_refine_1.png")
+                save_image(refine_2, f"{experiment_name}_LoadedImages/{epoch}_{idx}_refine_2.png")
         elif ( refine_technique == "lsb"):
             reconstruct_1, reconstruct_2 = utils.reconstruct_images_pixel_wise_msb_batch(descrambled_intermediate)
             print(reconstruct_1.shape, reconstruct_2.shape)
-            save_image(reconstruct_1, f"{experiment_name}_LoadedImages/{epoch}_{idx}_reconstruct_msb_1.png")
-            save_image(reconstruct_2, f"{experiment_name}_LoadedImages/{epoch}_{idx}_reconstruct_msb_2.png")
+            if idx==0:
+                save_image(reconstruct_1, f"{experiment_name}_LoadedImages/{epoch}_{idx}_reconstruct_msb_1.png")
+                save_image(reconstruct_2, f"{experiment_name}_LoadedImages/{epoch}_{idx}_reconstruct_msb_2.png")
             refine_1 = reconstruct_1
             refine_2 = reconstruct_2
 
         source_1_refine_loss = L1_loss(source_1, refine_1)
         source_2_refine_loss = L1_loss(source_2, refine_2)
         refine_loss = (source_1_refine_loss + source_2_refine_loss) / 2
-        source_refine_loss_array.append(refine_loss)
+        source_refine_loss_array.append(refine_loss.item())
 
         generator_loss = (
             generator_source_loss + generator_target_loss  
             + cycle_source_loss*config.LAMBDA_CYCLE + cycle_target_loss*config.LAMBDA_CYCLE 
-            + identity_source_loss*config.LAMBDA_IDENTITY + identity_target_loss*config.LAMBDA_IDENTITY
+            # + identity_source_loss*config.LAMBDA_IDENTITY + identity_target_loss*config.LAMBDA_IDENTITY
             + intermediate_loss*config.LAMBDA_INTERMEDIATE
             + refine_loss*config.LAMBDA_REFINE
         )
 
-        gen_total_loss_array.append(generator_loss)
+        gen_total_loss_array.append(generator_loss.item())
         
         generator_optimizer.zero_grad()
         generator_scaler.scale(generator_loss).backward()
@@ -278,6 +290,8 @@ def train_function_double(experiment_name:str, discriminator_T:Discriminator, di
     with open(source_refine_loss, "a") as source_refine_loss_file:
         source_refine_loss_file.write(str(source_refine_loss_value) + "\n")
     
+    del discriminator_target_fake, discriminator_source_fake, generator_target_loss, generator_source_loss, cycle_source, cycle_target, cycle_source_loss, cycle_target_loss, identity_source, identity_target, identity_source_loss, identity_target_loss, identity_total_loss, intermediate_loss, source_1_refine_loss, source_2_refine_loss, refine_loss, generator_loss, source_1, source_2, target, fused_image, scrambled_intermediate, fake_target, fake_source, descrambled_intermediate, reconstruct_1, reconstruct_2, refine_1, refine_2
+    torch.cuda.empty_cache()
 
 
 def train_experimental_model(experiment_name:str, root_source_path:str, root_source_2_path:str, root_target_path:str, transform_source_1:str, transform_source_2:str, transform_target:str, refine_technique:str) -> None:
